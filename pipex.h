@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:29:06 by crisfern          #+#    #+#             */
-/*   Updated: 2022/01/31 16:43:47 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/02 09:45:53 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ typedef struct s_cmd
 	char	*outfile;
 	char	**cmd1;
 	char	**cmd2;
+	char	**path;
 }	t_cmd;
 
 #endif
