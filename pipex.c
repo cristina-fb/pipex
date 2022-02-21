@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:28:55 by crisfern          #+#    #+#             */
-/*   Updated: 2022/02/02 10:45:27 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/21 15:02:14 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,20 @@ void	error(t_cmd *cmd, int err)
 		exit(1);
 }
 
+void	join_path(t_cmd *cmd, char *str)
+{
+	int		i;
+	char	*aux;
+
+	i = 0;
+	while (cmd->path[i])
+	{
+		aux = ft_strjoin(cmd->path[i], "/");
+		cmd->path[i] = ft_strjoin(aux, str);
+		i++;
+	}
+}
+
 void	get_path(t_cmd *cmd, char **envp)
 {
 	int		i;
@@ -69,10 +83,12 @@ void	get_path(t_cmd *cmd, char **envp)
 				&& (envp[i][4] == '='))
 			{
 				cmd->path = ft_split(&envp[i][5], ':');
-				return ;
+				break ;
 			}
 			i++;
 		}
+		join_path(cmd, cmd->cmd1[0]);
+		return ;
 	}
 	cmd->path = 0;
 }
@@ -87,13 +103,29 @@ void	init_cmd(t_cmd *cmd, char **argv, char	**envp)
 		get_path(cmd, envp);
 }
 
-void	check_permissions(char *file, int flag)
+void	check_file_permissions(char *file, int flag)
 {
 	if (access(file, flag) != 0)
 	{
 		perror(file);
 		exit(1);
 	}
+}
+
+int	check_cmd_permissions(t_cmd *cmd)
+{
+	int	i;
+
+	i = 0;
+	while (cmd->path[i])
+	{
+		if (access(cmd->path[i], X_OK) == 0)
+			return (i);
+		i++;
+	}
+	ft_putstr_fd(cmd->cmd1[0], 1);
+	ft_putstr_fd(": command not found\n", 1);
+	exit(1);
 }
 
 int	main(int argc, char **argv, char **envp)
@@ -107,7 +139,7 @@ int	main(int argc, char **argv, char **envp)
 	if (argc != 5)
 		error(&cmd, 0);
 	init_cmd(&cmd, argv, envp);
-	check_permissions(cmd.infile, R_OK);
+	check_file_permissions(cmd.infile, R_OK);
 	if (pipe(fd) == -1)
 		error(&cmd, 1);
 	id = fork();
@@ -117,7 +149,8 @@ int	main(int argc, char **argv, char **envp)
 	{
 		close(fd[0]);
 		fd_in = open(cmd.infile, O_RDONLY);
-		execve("/bin/ls", cmd.cmd1, envp);
+		check_cmd_permissions(&cmd);
+		execve(cmd.path[check_cmd_permissions(&cmd)], cmd.cmd1, envp);
 		perror("Caca");
 	}
 	else
