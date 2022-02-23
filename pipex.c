@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:28:55 by crisfern          #+#    #+#             */
-/*   Updated: 2022/02/23 11:53:16 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/23 15:33:02 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,15 +29,6 @@ void	error(t_cmd *cmd, int err)
 		exit(1);
 }
 
-void	check_file_permissions(char *file, int flag)
-{
-	if (access(file, flag) != 0)
-	{
-		perror(file);
-		exit(1);
-	}
-}
-
 void	child1(t_cmd *cmd, char **envp)
 {
 	int		id;
@@ -54,8 +45,7 @@ void	child1(t_cmd *cmd, char **envp)
 		close(fd_in);
 		dup2(cmd->fd[1], STDOUT_FILENO);
 		close(cmd->fd[1]);
-		execve(cmd->path[check_cmd_permissions(cmd, 0)], cmd->cmd1, envp);
-		//perror("");
+		execve(cmd->path1, cmd->cmd1, envp);
 		exit(1);
 	}
 }
@@ -64,7 +54,7 @@ void	child2(t_cmd *cmd, char **envp)
 {
 	int		id;
 	int		fd_out;
-	
+
 	id = fork();
 	if (id == -1)
 		error(cmd, 1);
@@ -76,8 +66,7 @@ void	child2(t_cmd *cmd, char **envp)
 		close(cmd->fd[0]);
 		dup2(fd_out, STDOUT_FILENO);
 		close(fd_out);
-		execve(cmd->path[check_cmd_permissions(cmd, 1)], cmd->cmd2, envp);
-		//perror("");
+		execve(cmd->path2, cmd->cmd2, envp);
 		exit(1);
 	}
 }
@@ -90,11 +79,9 @@ int	main(int argc, char **argv, char **envp)
 	if (argc != 5)
 		error(&cmd, 0);
 	init_cmd(&cmd, argv, envp);
-	check_file_permissions(cmd.infile, R_OK);
 	if (pipe(cmd.fd) == -1)
 		error(&cmd, 1);
 	child1(&cmd, envp);
-	get_path(&cmd, envp, 1);
 	child2(&cmd, envp);
 	close(cmd.fd[0]);
 	close(cmd.fd[1]);
