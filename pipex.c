@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:28:55 by crisfern          #+#    #+#             */
-/*   Updated: 2022/02/21 15:02:14 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/23 10:29:38 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ void	join_path(t_cmd *cmd, char *str)
 	}
 }
 
-void	get_path(t_cmd *cmd, char **envp)
+void	get_path(t_cmd *cmd, char **envp, int id)
 {
 	int		i;
 
@@ -87,7 +87,10 @@ void	get_path(t_cmd *cmd, char **envp)
 			}
 			i++;
 		}
-		join_path(cmd, cmd->cmd1[0]);
+		if (!id)
+			join_path(cmd, cmd->cmd1[0]);
+		else
+			join_path(cmd, cmd->cmd2[0]);
 		return ;
 	}
 	cmd->path = 0;
@@ -100,7 +103,7 @@ void	init_cmd(t_cmd *cmd, char **argv, char	**envp)
 	cmd->cmd1 = ft_split(argv[2], ' ');
 	cmd->cmd2 = ft_split(argv[3], ' ');
 	if (cmd->cmd1 && cmd->cmd2)
-		get_path(cmd, envp);
+		get_path(cmd, envp, 0);
 }
 
 void	check_file_permissions(char *file, int flag)
@@ -112,7 +115,7 @@ void	check_file_permissions(char *file, int flag)
 	}
 }
 
-int	check_cmd_permissions(t_cmd *cmd)
+int	check_cmd_permissions(t_cmd *cmd, int id)
 {
 	int	i;
 
@@ -123,7 +126,10 @@ int	check_cmd_permissions(t_cmd *cmd)
 			return (i);
 		i++;
 	}
-	ft_putstr_fd(cmd->cmd1[0], 1);
+	if (!id)
+		ft_putstr_fd(cmd->cmd1[0], 1);
+	else
+		ft_putstr_fd(cmd->cmd2[0], 1);
 	ft_putstr_fd(": command not found\n", 1);
 	exit(1);
 }
@@ -134,6 +140,7 @@ int	main(int argc, char **argv, char **envp)
 	int		id;
 	int		fd[2];
 	int		fd_in;
+	int		fd_out;
 
 	//atexit(leaks);
 	if (argc != 5)
@@ -148,15 +155,33 @@ int	main(int argc, char **argv, char **envp)
 	else if (!id)
 	{
 		close(fd[0]);
-		fd_in = open(cmd.infile, O_RDONLY);
-		check_cmd_permissions(&cmd);
-		execve(cmd.path[check_cmd_permissions(&cmd)], cmd.cmd1, envp);
-		perror("Caca");
-	}
-	else
-	{
+		fd_in = open(cmd.infile, O_RDONLY | O_NONBLOCK);
+		dup2(fd_in, STDIN_FILENO);
+		close(fd_in);
+		dup2(fd[1], STDOUT_FILENO);
 		close(fd[1]);
+		execve(cmd.path[check_cmd_permissions(&cmd, 0)], cmd.cmd1, envp);
+		//perror("");
+		exit(1);
 	}
+	get_path(&cmd, envp, 1);
+	id = fork();
+	if (id == -1)
+		error(&cmd, 1);
+	else if (!id)
+	{
+		fd_out = open(cmd.outfile, O_WRONLY | O_CREAT | O_TRUNC);
+		close(fd[1]);
+		dup2(fd[0], STDIN_FILENO);
+		close(fd[0]);
+		dup2(fd_out, STDOUT_FILENO);
+		close(fd_out);
+		execve(cmd.path[check_cmd_permissions(&cmd, 1)], cmd.cmd2, envp);
+		//perror("");
+		exit(1);
+	}
+	close(fd[0]);
+	close(fd[1]);
 	wait(NULL);
 	free_cmd(&cmd);
 	return (0);

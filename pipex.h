@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:29:06 by crisfern          #+#    #+#             */
-/*   Updated: 2022/02/21 14:41:09 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/21 15:39:15 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,9 @@
 # include <string.h>
 # include <fcntl.h>
 
+# include <sys/types.h>
+# include <sys/uio.h>
+# include <unistd.h>
 typedef struct s_cmd
 {
 	char	*infile;
