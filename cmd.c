@@ -6,7 +6,7 @@
 /*   By: crisfern <crisfern@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/12/13 13:28:55 by crisfern          #+#    #+#             */
-/*   Updated: 2022/02/23 15:33:10 by crisfern         ###   ########.fr       */
+/*   Updated: 2022/02/25 11:13:11 by crisfern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,11 +23,17 @@ void	init_cmd(t_cmd *cmd, char **argv, char	**envp)
 	cmd->cmd2 = ft_split(argv[3], ' ');
 	if (cmd->cmd1 && cmd->cmd2)
 	{
+		cmd->fd_out = open(cmd->outfile, O_WRONLY | O_CREAT | O_TRUNC);
 		flag |= check_file_permissions(cmd);
 		flag |= get_path(cmd, envp);
 		if (flag)
-			exit(1);
+		{
+			close(cmd->fd_out);
+			error(cmd, 1);
+		}
 	}
+	else
+		error(cmd, 1);
 }
 
 void	free_cmd(t_cmd *cmd)
@@ -63,7 +69,7 @@ int	join_path(t_cmd *cmd, char *str, int id)
 	char	*path;
 
 	i = 0;
-	while (cmd->path[i])
+	while (cmd->path && cmd->path[i])
 	{
 		aux = ft_strjoin(cmd->path[i++], "/");
 		path = ft_strjoin(aux, str);
@@ -102,8 +108,8 @@ int	get_path(t_cmd *cmd, char **envp)
 			}
 			i++;
 		}
-		flag = join_path(cmd, cmd->cmd1[0], 0);
-		flag |= join_path(cmd, cmd->cmd2[0], 1);
+		join_path(cmd, cmd->cmd1[0], 0);
+		flag = join_path(cmd, cmd->cmd2[0], 1);
 		if (flag)
 			return (1);
 		return (0);
@@ -122,7 +128,7 @@ int	check_file_permissions(t_cmd *cmd)
 		perror(cmd->infile);
 		flag = 1;
 	}
-	if (access(cmd->outfile, W_OK) != 0)
+	if (cmd->fd_out < 0)
 	{
 		perror(cmd->outfile);
 		flag = 1;
